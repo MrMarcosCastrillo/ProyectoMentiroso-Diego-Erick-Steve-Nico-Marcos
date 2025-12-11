@@ -12,7 +12,7 @@ public class ProyectoMentirosoApplication {
 
 	public static void main(String[] args) {
 		SpringApplication.run(ProyectoMentirosoApplication.class, args);
-	}
+	}//
 	
 	@GetMapping("/hello")
 	public String hello(@RequestParam(value = "nombre", defaultValue="World") String name) {
