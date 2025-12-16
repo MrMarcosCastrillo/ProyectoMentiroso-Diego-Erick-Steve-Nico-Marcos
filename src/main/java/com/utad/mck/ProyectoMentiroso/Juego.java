@@ -9,12 +9,14 @@ public class Juego {
 	private List<Jugador> jugadores;
 	private int idJugadorActual;
 	private boolean partidaTerminada;
+	private List<String> mazoRestante;
 
 	public Juego(List<Jugador> jugadores, int idJugadorActual) {
 		this.idJuego = UUID.randomUUID().toString(); // generar id random
 		this.jugadores = jugadores;
 		this.idJugadorActual = idJugadorActual;
 		this.partidaTerminada = false; // al iniciar la partida esta sin terminar
+		this.mazoRestante = mazoRestante;
 	}
 
 	public String getIdJuego() {
