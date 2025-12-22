@@ -56,8 +56,7 @@ public class ProyectoMentirosoApplication {
 	public String jugada(@RequestParam(value = "nombre", defaultValue = "World") String name) {
 		return String.format("Hello %s!", name);
 	}
-	
-	
+
 	@GetMapping("/juego/{idJuego}/levantar") // endpoint
 	public String levantarJugada(@RequestParam(value = "nombre", defaultValue = "World") String name) {
 		return String.format("Hello %s!", name);
@@ -73,8 +72,9 @@ public class ProyectoMentirosoApplication {
 
 		// con la variable del pathvariable sacamos el id
 		Juego partidaExistente = partidas.get(idJuego);
-		if (partidaExistente == null) { // si no existe la respuesta sera un mensaje de error
-			respuesta.put("error", "La partida no existe");
+
+		if (partidaExistente.getJugadores().size() >= 5) {
+			respuesta.put("error", "La partida está llena. Máximo 5 jugadores.");
 			return respuesta;
 		}
 
