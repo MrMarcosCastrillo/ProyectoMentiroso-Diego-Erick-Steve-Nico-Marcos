@@ -2,12 +2,11 @@ package com.utad.mck.ProyectoMentiroso;
 
 import java.util.Scanner;
 
-import org.springframework.boot.SpringApplication;
 
 public class cliente {
 	static Scanner sc = new Scanner(System.in);
 
-	public void menuDentroPartida() {
+	public void menuDentroPartida() {	
 		boolean seguir = true;
 
 		System.out.println("ELIGE TU JUGADA:" + "\n");
@@ -54,7 +53,6 @@ public class cliente {
 	public static void main(String[] args) {
 
 		boolean seguir = true;
-		SpringApplication.run(ProyectoMentirosoApplication.class, args);
 
 		System.out.println("--BIENVENIDO AL JUEGO DEL MENTIROSO--");
 		System.out.println("1. Crear una partida");
