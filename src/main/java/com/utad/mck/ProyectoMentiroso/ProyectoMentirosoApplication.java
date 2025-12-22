@@ -6,95 +6,94 @@ import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
+import java.util.Map.Entry;
 import java.util.Scanner;
 
 import org.apache.logging.log4j.util.Strings;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.web.bind.annotation.GetMapping;
+import org.springframework.web.bind.annotation.PathVariable;
 import org.springframework.web.bind.annotation.RequestParam;
 import org.springframework.web.bind.annotation.RestController;
 
 @SpringBootApplication
 @RestController
 public class ProyectoMentirosoApplication {
+
+	// La url base es http://localhost:8080
+
 	static Scanner sc = new Scanner(System.in);
 
 	private Map<String, Juego> partidas = new HashMap<>(); // Mapa para guardar los juegos activos
 
-	private static String[] SIMBOLO = { "C", "D", "P", "T" }; // Corazones, diamantes, picas y treboles
-	private static String[] NUMERO = { "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "1" };
-
-	@GetMapping("/juego/empezar") // endpoint
+	@GetMapping("/juego/empezar")
 	public Map<String, Object> empezarJuego(
 			@RequestParam(value = "nombre", defaultValue = "Invitado") String nomJugador) {
 
-		// Dejamos lista la baraja que sera del jugador
-		List<String> barajaInicial = repartirCartas();
+		// al iniciar el juego las cartas ya estarán barajadas
+		Juego nuevaPartida = new Juego();
 
-		// Creamos al jugador
-		// !!DE MOMENTO EL ID ES EL NOMBRE DEL JUGADOR HAY QUE CAMBIARLO
-		Jugador jugadorNuevo = new Jugador(nomJugador, nomJugador, barajaInicial, false);
+		// el metodo robarCartas robara del mazo las 5 cartas inciales que necesitamos
+		List<String> cartasJugador = nuevaPartida.robarCartas(5);
 
-		// Creamos la partida
-		List<Jugador> jugadores = new ArrayList<>();
-		jugadores.add(jugadorNuevo);
+		Jugador jugadorNuevo = new Jugador(nomJugador, nomJugador, cartasJugador, false);
+		nuevaPartida.getJugadores().add(jugadorNuevo);
 
-		Juego nuevaPartida = new Juego(jugadores, 0); // el jugador actual sera el creador
+		// la partida aparecera en la lista de partidas
+		partidas.put(nuevaPartida.getIdJuego(), nuevaPartida);
 
-		partidas.put(nuevaPartida.getIdJuego(), nuevaPartida); // añadimos la partida a la lista de partidas
-
-		Map<String, Object> respuesta = new HashMap<String, Object>(); // como el endpoint devolvera un mapa, la
-																		// respuesta sera un mapa
+		// Respuesta
+		Map<String, Object> respuesta = new HashMap<>();
 		respuesta.put("idJugador", jugadorNuevo.getIdJugador());
 		respuesta.put("idJuego", nuevaPartida.getIdJuego());
 		respuesta.put("cartas", jugadorNuevo.getCartas());
 
 		return respuesta;
-
 	}
 
-	@GetMapping("/juego/{idJuego}/jugar") // endpoint
-	public String juegarJuego(@RequestParam(value = "nombre", defaultValue = "World") String name) {
+	@GetMapping("/juego/{idJuego}/jugada") // endpoint
+	public String jugada(@RequestParam(value = "nombre", defaultValue = "World") String name) {
 		return String.format("Hello %s!", name);
 	}
-
+	
+	
 	@GetMapping("/juego/{idJuego}/levantar") // endpoint
 	public String levantarJugada(@RequestParam(value = "nombre", defaultValue = "World") String name) {
 		return String.format("Hello %s!", name);
 	}
 
-	@GetMapping("/juego/{idJuego}/unirse") // endpoint
-	public String unirseJuego(@RequestParam(value = "nombre", defaultValue = "World") String name) {
-		return String.format("Hello %s!", name);
+	@GetMapping("/juego/{idJuego}/unirse")
+	public Map<String, Object> unirseJuego(@PathVariable("idJuego") String idJuego, // path variable saca la id de la
+																					// url
+
+			@RequestParam(value = "nombre") String nomJugador) {
+
+		Map<String, Object> respuesta = new HashMap<>();
+
+		// con la variable del pathvariable sacamos el id
+		Juego partidaExistente = partidas.get(idJuego);
+		if (partidaExistente == null) { // si no existe la respuesta sera un mensaje de error
+			respuesta.put("error", "La partida no existe");
+			return respuesta;
+		}
+
+		// Robara del mazo otras 5 cartas (SERAN DE ESE MISMO MAZO
+		List<String> cartasJugador = partidaExistente.robarCartas(5);
+
+		Jugador jugadorNuevo = new Jugador(nomJugador, nomJugador, cartasJugador, false);
+		partidaExistente.getJugadores().add(jugadorNuevo);
+
+		// Respuesta
+		respuesta.put("idJugador", jugadorNuevo.getIdJugador());
+		respuesta.put("idJuego", partidaExistente.getIdJuego());
+		respuesta.put("cartas", jugadorNuevo.getCartas());
+		respuesta.put("mensaje", "Te has unido a la partida exitosamente");
+
+		return respuesta;
 	}
 
 	// metodo para repartir cartas
-	private List<String> repartirCartas() {
-		List<String> mazo = new ArrayList<>();
-		for (String simbolo : SIMBOLO) {
-			for (String numero : NUMERO) {
-				mazo.add(numero + simbolo); // 3C, 4A, 1P
-			}
-
-		}
-
-		Collections.shuffle(mazo); // aleatoriza las cartas, es necesario porque si no el orden de las cartas será
-									// el mismo
-
-		// guardara las cartas barajadas que se le daran al jugador
-		List<String> cartasRepartidas = new ArrayList<>();
-
-		for (int i = 0; i < 5; i++) {
-			cartasRepartidas.add(mazo.get(i));
-			mazo.remove(cartasRepartidas.get(i));// daremos solo 5 cartas del mazo
-		}
-		
-		
-
-		return cartasRepartidas;
-
-	}
 
 	public static void main(String[] args) {
 		SpringApplication.run(ProyectoMentirosoApplication.class, args);
