@@ -88,11 +88,23 @@ public class Juego {
 	public void setMazo(List<String> mazo) {
 		this.mazo = mazo;
 	}
+
 	public Map<String, Object> getUltimaJugada() {
-	    return ultimaJugada;
+		return ultimaJugada;
 	}
 
 	public void setUltimaJugada(Map<String, Object> ultimaJugada) {
-	    this.ultimaJugada = ultimaJugada;
+		this.ultimaJugada = ultimaJugada;
 	}
+
+	// Devuelve el jugador al que le toca jugar
+	public Jugador getJugadorActual() {
+		return jugadores.get(idJugadorActual);
+	}
+
+	// Pasa el turno al siguiente jugador
+	public void pasarTurno() {
+		idJugadorActual = (idJugadorActual + 1) % jugadores.size();
+	}
+
 }
