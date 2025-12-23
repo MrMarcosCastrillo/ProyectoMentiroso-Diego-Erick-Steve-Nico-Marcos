@@ -50,21 +50,18 @@ public class ProyectoMentirosoApplication {
 
 		return respuesta;
 
-
 	}
 
 	@GetMapping("/juego/{idJuego}/jugar") // endpoint
 	public String juegarJuego(@RequestParam(value = "nombre", defaultValue = "World") String name) {
-		
+
 		return String.format("Hello %s!", name);
 	}
 
 	@GetMapping("/juego/{idJuego}/levantar") // endpoint
 	public String levantarJugada(@RequestParam(value = "nombre", defaultValue = "World") String name) {
-		
-		return String.format("Hello %s!", name);
-	}
 
+		return String.format("Hello %s!", name);
 	}
 
 	// Hacer la jugada
@@ -73,7 +70,6 @@ public class ProyectoMentirosoApplication {
 			@RequestParam("tipo") String tipo, @RequestParam("valores") String valores) {
 		Map<String, Object> respuesta = new HashMap<>();
 
-
 		Juego partida = partidas.get(idJuego);
 		if (partida == null) {
 			respuesta.put("error", "No existe la partida con idJuego=" + idJuego);
@@ -81,14 +77,25 @@ public class ProyectoMentirosoApplication {
 		}
 
 		Jugador jugador = null;
+		boolean encontrado = false;
+
 		for (Jugador j : partida.getJugadores()) {
-			if (j.getNombre().equalsIgnoreCase(nombre)) {
+			if (!encontrado && j.getNombre().equalsIgnoreCase(nombre)) {
 				jugador = j;
-				break;
+				encontrado = true;
 			}
 		}
+
 		if (jugador == null) {
 			respuesta.put("error", "No existe el jugador '" + nombre + "' en esta partida");
+			return respuesta;
+		}
+
+		// Comprobar si es su turno
+		Jugador jugadorTurno = partida.getJugadorActual();
+
+		if (!jugadorTurno.getNombre().equalsIgnoreCase(nombre)) {
+			respuesta.put("error", "No es tu turno. Le toca a " + jugadorTurno.getNombre());
 			return respuesta;
 		}
 
@@ -98,14 +105,19 @@ public class ProyectoMentirosoApplication {
 		ultima.put("valores", valores);
 
 		partida.setUltimaJugada(ultima);
+
+		// Pasar turno al siguiente jugador
+		partida.pasarTurno();
+
 		respuesta.put("ok", true);
 		respuesta.put("idJuego", idJuego);
 		respuesta.put("jugadaRegistrada", ultima);
+		respuesta.put("turnoSiguiente", partida.getJugadorActual().getNombre());
 		return respuesta;
 	}
 
 	@GetMapping("/juego/{idJuego}/levantar") // endpoint
-	public String levantarJugada(@RequestParam(value = "nombre", defaultValue = "World") String name) {
+	public String levantarJugada2(@RequestParam(value = "nombre", defaultValue = "World") String name) {
 		return String.format("Hello %s!", name);
 	}
 
