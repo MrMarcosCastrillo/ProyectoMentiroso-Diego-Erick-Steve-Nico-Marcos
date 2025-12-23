@@ -54,11 +54,13 @@ public class ProyectoMentirosoApplication {
 
 	@GetMapping("/juego/{idJuego}/jugar") // endpoint
 	public String juegarJuego(@RequestParam(value = "nombre", defaultValue = "World") String name) {
+		
 		return String.format("Hello %s!", name);
 	}
 
 	@GetMapping("/juego/{idJuego}/levantar") // endpoint
 	public String levantarJugada(@RequestParam(value = "nombre", defaultValue = "World") String name) {
+		
 		return String.format("Hello %s!", name);
 	}
 
