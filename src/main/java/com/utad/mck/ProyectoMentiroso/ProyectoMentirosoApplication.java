@@ -1,7 +1,7 @@
 package com.utad.mck.ProyectoMentiroso;
 
 import java.util.ArrayList;
-import java.util.Collection;
+
 import java.util.Collections;
 import java.util.HashMap;
 import java.util.List;
@@ -9,7 +9,6 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Scanner;
 
-import org.apache.logging.log4j.util.Strings;
 import org.springframework.boot.SpringApplication;
 import org.springframework.boot.autoconfigure.SpringBootApplication;
 import org.springframework.web.bind.annotation.GetMapping;
@@ -50,6 +49,22 @@ public class ProyectoMentirosoApplication {
 		respuesta.put("cartas", jugadorNuevo.getCartas());
 
 		return respuesta;
+
+
+	}
+
+	@GetMapping("/juego/{idJuego}/jugar") // endpoint
+	public String juegarJuego(@RequestParam(value = "nombre", defaultValue = "World") String name) {
+		
+		return String.format("Hello %s!", name);
+	}
+
+	@GetMapping("/juego/{idJuego}/levantar") // endpoint
+	public String levantarJugada(@RequestParam(value = "nombre", defaultValue = "World") String name) {
+		
+		return String.format("Hello %s!", name);
+	}
+
 	}
 
 	// Hacer la jugada
@@ -57,6 +72,7 @@ public class ProyectoMentirosoApplication {
 	public Map<String, Object> jugada(@PathVariable("idJuego") String idJuego, @RequestParam("nombre") String nombre,
 			@RequestParam("tipo") String tipo, @RequestParam("valores") String valores) {
 		Map<String, Object> respuesta = new HashMap<>();
+
 
 		Juego partida = partidas.get(idJuego);
 		if (partida == null) {
