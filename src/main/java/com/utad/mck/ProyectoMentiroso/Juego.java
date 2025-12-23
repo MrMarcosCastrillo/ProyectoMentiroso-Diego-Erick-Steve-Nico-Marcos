@@ -3,6 +3,7 @@ package com.utad.mck.ProyectoMentiroso;
 import java.util.ArrayList;
 import java.util.Collections;
 import java.util.List;
+import java.util.Map;
 import java.util.UUID;
 
 public class Juego {
@@ -14,6 +15,7 @@ public class Juego {
 	private int idJugadorActual;
 	private boolean partidaTerminada;
 	private List<String> mazo; // Se inicializará en el constructor
+	private Map<String, Object> ultimaJugada = new java.util.HashMap<>();
 
 	// CONSTRUCTOR ÚNICO: Se encarga de dejar el juego listo
 	public Juego() {
@@ -85,5 +87,12 @@ public class Juego {
 
 	public void setMazo(List<String> mazo) {
 		this.mazo = mazo;
+	}
+	public Map<String, Object> getUltimaJugada() {
+	    return ultimaJugada;
+	}
+
+	public void setUltimaJugada(Map<String, Object> ultimaJugada) {
+	    this.ultimaJugada = ultimaJugada;
 	}
 }

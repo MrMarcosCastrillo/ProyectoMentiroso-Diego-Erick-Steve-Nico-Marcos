@@ -52,9 +52,40 @@ public class ProyectoMentirosoApplication {
 		return respuesta;
 	}
 
-	@GetMapping("/juego/{idJuego}/jugada") // endpoint
-	public String jugada(@RequestParam(value = "nombre", defaultValue = "World") String name) {
-		return String.format("Hello %s!", name);
+	// Hacer la jugada
+	@GetMapping("/juego/{idJuego}/jugada")
+	public Map<String, Object> jugada(@PathVariable("idJuego") String idJuego, @RequestParam("nombre") String nombre,
+			@RequestParam("tipo") String tipo, @RequestParam("valores") String valores) {
+		Map<String, Object> respuesta = new HashMap<>();
+
+		Juego partida = partidas.get(idJuego);
+		if (partida == null) {
+			respuesta.put("error", "No existe la partida con idJuego=" + idJuego);
+			return respuesta;
+		}
+
+		Jugador jugador = null;
+		for (Jugador j : partida.getJugadores()) {
+			if (j.getNombre().equalsIgnoreCase(nombre)) {
+				jugador = j;
+				break;
+			}
+		}
+		if (jugador == null) {
+			respuesta.put("error", "No existe el jugador '" + nombre + "' en esta partida");
+			return respuesta;
+		}
+
+		Map<String, Object> ultima = new HashMap<>();
+		ultima.put("jugador", nombre);
+		ultima.put("tipo", tipo);
+		ultima.put("valores", valores);
+
+		partida.setUltimaJugada(ultima);
+		respuesta.put("ok", true);
+		respuesta.put("idJuego", idJuego);
+		respuesta.put("jugadaRegistrada", ultima);
+		return respuesta;
 	}
 
 	@GetMapping("/juego/{idJuego}/levantar") // endpoint
