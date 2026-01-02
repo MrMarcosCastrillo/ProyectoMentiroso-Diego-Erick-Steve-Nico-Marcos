@@ -4,6 +4,7 @@ import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.net.URLEncoder;
 import java.util.HashMap;
 import java.util.List;
 import java.util.Map;
@@ -115,8 +116,6 @@ public class ClienteMentiroso {
 	    enPartida = true;
 	}
 	
-
-
 	public static void lobby() {
 		System.out.println("--LISTADO DE PARTIDAS--");
 		String url = servidor + "/juego/lista";
@@ -143,9 +142,14 @@ public class ClienteMentiroso {
         System.out.print("Valores de las cartas: ");
         String valores = sc.nextLine();
 
-        String url = servidor + "/juego/" + idJuegoActual + "/jugada?nombre=" + nombreJugador
-                + "&tipo=" + tipo + "&valores=" + valores;
-        llamarEndpoint(url);
+        try {
+            String valoresEncoded = URLEncoder.encode(valores, "UTF-8");
+            String url = servidor + "/juego/" + idJuegoActual + "/jugada?nombre=" + nombreJugador
+                    + "&tipo=" + tipo + "&valores=" + valoresEncoded;
+            llamarEndpoint(url);
+        } catch (Exception e) {
+            System.out.println("Error al codificar los valores de la jugada");
+        }
     }
 	
 	public static void levantar() {
