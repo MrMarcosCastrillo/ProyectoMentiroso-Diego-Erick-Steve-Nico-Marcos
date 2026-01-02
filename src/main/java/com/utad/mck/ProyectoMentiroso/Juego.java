@@ -16,12 +16,16 @@ public class Juego {
 	private boolean partidaTerminada;
 	private List<String> mazo; // Se inicializará en el constructor
 	private Map<String, Object> ultimaJugada = new java.util.HashMap<>();
+	private List<String> cartasMesa = new ArrayList<>(); //
+	private List<String> ultimasCartasTiradasFisicas = new ArrayList<>(); // necesario para hacer el endpoint levantar
+	private String ultimaDeclaracion = ""; // lo que diga el cliente si son ases, o corazones o trebloes...
 
 	// CONSTRUCTOR ÚNICO: Se encarga de dejar el juego listo
 	public Juego() {
 		this.idJuego = UUID.randomUUID().toString();
 		this.jugadores = new ArrayList<>(); // ¡Crucial para evitar NullPointerException!
 		this.mazo = new ArrayList<>(); // ¡Crucial para evitar NullPointerException!
+		this.cartasMesa = new ArrayList<>();
 		this.idJugadorActual = 0;
 		this.partidaTerminada = false;
 
@@ -47,6 +51,27 @@ public class Juego {
 		}
 		return mano;
 	}
+
+	// metodo que registra la jugada real contra la que se ha declarado
+	public void registrarJugada(List<String> cartasFisicas, String declaracion) {
+		this.ultimasCartasTiradasFisicas = new ArrayList<>(cartasFisicas);
+		this.ultimaDeclaracion = declaracion;
+		this.cartasMesa.addAll(cartasFisicas);
+	}
+
+	// metodo que hace que el perdedor se lleve las cartas de la mesa
+	public void chuparCartas(Jugador perdedor) {
+		if (perdedor != null) {
+			perdedor.getCartas().addAll(this.cartasMesa);
+			this.cartasMesa.clear();
+			this.ultimasCartasTiradasFisicas.clear();
+			this.ultimaDeclaracion = "";
+			this.ultimaJugada.clear();
+		}
+	}
+
+	
+	
 
 	// GETTERS Y SETTERS
 	public String getIdJuego() {
@@ -99,12 +124,50 @@ public class Juego {
 
 	// Devuelve el jugador al que le toca jugar
 	public Jugador getJugadorActual() {
+		if (jugadores.isEmpty())
+			return null;
 		return jugadores.get(idJugadorActual);
 	}
 
 	// Pasa el turno al siguiente jugador
 	public void pasarTurno() {
 		idJugadorActual = (idJugadorActual + 1) % jugadores.size();
+	}
+
+	public List<String> getCartasEnMesa() {
+		return cartasMesa;
+	}
+
+	public List<String> getUltimasCartasTiradasFisicas() {
+		return ultimasCartasTiradasFisicas;
+	}
+
+	public String getUltimaDeclaracion() {
+		return ultimaDeclaracion;
+	}
+
+	public List<String> getCartasMesa() {
+		return cartasMesa;
+	}
+
+	public void setCartasMesa(List<String> cartasMesa) {
+		this.cartasMesa = cartasMesa;
+	}
+
+	public static String[] getSimbolo() {
+		return SIMBOLO;
+	}
+
+	public static String[] getNumero() {
+		return NUMERO;
+	}
+
+	public void setUltimasCartasTiradasFisicas(List<String> ultimasCartasTiradasFisicas) {
+		this.ultimasCartasTiradasFisicas = ultimasCartasTiradasFisicas;
+	}
+
+	public void setUltimaDeclaracion(String ultimaDeclaracion) {
+		this.ultimaDeclaracion = ultimaDeclaracion;
 	}
 
 }
