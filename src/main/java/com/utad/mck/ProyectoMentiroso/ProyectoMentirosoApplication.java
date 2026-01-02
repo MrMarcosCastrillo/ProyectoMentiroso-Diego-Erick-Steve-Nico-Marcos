@@ -58,10 +58,38 @@ public class ProyectoMentirosoApplication {
 		return String.format("Hello %s!", name);
 	}
 
-	@GetMapping("/juego/{idJuego}/levantar") // endpoint
-	public String levantarJugada(@RequestParam(value = "nombre", defaultValue = "World") String name) {
+	@GetMapping("/juego/{idJuego}/levantar")
+	public Map<String, Object> levantar(@PathVariable String idJuego, @RequestParam String nombre) {
+		Map<String, Object> respuesta = new HashMap<>();
+		Juego partida = partidas.get(idJuego);
 
-		return String.format("Hello %s!", name);
+		//nombre ultimo jugador
+		String nombreSospechoso = (String) partida.getUltimaJugada().get("jugador");
+
+		//comprobar si miente o no 
+		boolean mintio = false;
+		for (String carta : partida.getUltimasCartasTiradasFisicas()) {
+			//comprobamos que la carta empieza con la ultima declaracion que se dio
+			if (!carta.startsWith(partida.getUltimaDeclaracion())) {
+				mintio = true;
+				break;
+			}
+		}
+
+		//si miente se aplica el castigo
+		if (mintio) {
+			//si el sospechoso miente se lleva las cartas
+			Jugador sospechoso = buscarJugadorPorNombre(partida, nombreSospechoso);
+			partida.chuparCartas(sospechoso);
+			respuesta.put("resultado", "¡Cazado! " + nombreSospechoso + " mentía y se lleva la mesa.");
+		} else {
+			//si no el acusador se las lleva
+			Jugador acusador = buscarJugadorPorNombre(partida, nombre);
+			partida.chuparCartas(acusador);
+			respuesta.put("resultado", "Era verdad... " + nombre + " se lleva toda la mesa.");
+		}
+
+		return respuesta;
 	}
 
 	// Hacer la jugada
@@ -116,11 +144,6 @@ public class ProyectoMentirosoApplication {
 		return respuesta;
 	}
 
-	@GetMapping("/juego/{idJuego}/levantar") // endpoint
-	public String levantarJugada2(@RequestParam(value = "nombre", defaultValue = "World") String name) {
-		return String.format("Hello %s!", name);
-	}
-
 	@GetMapping("/juego/{idJuego}/unirse")
 	public Map<String, Object> unirseJuego(@PathVariable("idJuego") String idJuego, // path variable saca la id de la
 																					// url
@@ -150,6 +173,33 @@ public class ProyectoMentirosoApplication {
 		respuesta.put("mensaje", "Te has unido a la partida exitosamente");
 
 		return respuesta;
+	}
+
+	// endpoint que devolvera las partidas disponibles y sus jugadores dentro
+	@GetMapping("/juego/lista")
+	public List<Map<String, String>> listarPartidas() {
+		List<Map<String, String>> listaParaCliente = new ArrayList<>();
+
+		for (Juego juego : partidas.values()) {
+			Map<String, String> info = new HashMap<>();
+			info.put("idJuego", juego.getIdJuego());
+			info.put("creador", juego.getJugadores().get(0).getNombre());
+			info.put("jugadores", juego.getJugadores().size() + "/5");
+			listaParaCliente.add(info);
+		}
+		return listaParaCliente;
+	}
+
+	// metodos auxuliares
+
+//metodo para encontrar a jugador por nombre
+	private Jugador buscarJugadorPorNombre(Juego partida, String nombre) {
+		for (Jugador j : partida.getJugadores()) {
+			if (j.getNombre().equalsIgnoreCase(nombre)) {
+				return j;
+			}
+		}
+		return null;
 	}
 
 	// metodo para repartir cartas

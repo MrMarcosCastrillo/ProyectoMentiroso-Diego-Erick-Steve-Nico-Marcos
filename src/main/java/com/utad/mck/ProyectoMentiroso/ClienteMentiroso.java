@@ -1,128 +1,142 @@
 package com.utad.mck.ProyectoMentiroso;
+
 import java.io.BufferedReader;
 import java.io.InputStreamReader;
 import java.net.HttpURLConnection;
 import java.net.URL;
+import java.util.HashMap;
+import java.util.List;
+import java.util.Map;
 import java.util.Scanner;
+
+
 
 public class ClienteMentiroso {
 
-    static Scanner sc = new Scanner(System.in);
-    
-    // Dirección del servidor, localhost porque el servidor corre en el mismo ordenador
-    static String servidor = "http://localhost:8080";
+	static Scanner sc = new Scanner(System.in);
 
-    public static void main(String[] args) {
+	// Dirección del servidor, localhost porque el servidor corre en el mismo
+	// ordenador
+	static String servidor = "http://localhost:8080";
 
-        boolean seguir = true;
+	public static void main(String[] args) {
 
-        System.out.println("-- CLIENTE JUEGO DEL MENTIROSO --");
+		boolean seguir = true;
 
-        while (seguir) {
+		System.out.println("-- CLIENTE JUEGO DEL MENTIROSO --");
 
-            System.out.println("\nMENU:");
-            System.out.println("1. Crear partida");
-            System.out.println("2. Unirse a partida");
-            System.out.println("3. Jugar (prueba)");
-            System.out.println("4. Levantar jugada (prueba)");
-            System.out.println("5. Salir");
+		while (seguir) {
 
-            int opcion = sc.nextInt();
-            sc.nextLine();
+			System.out.println("\nMENU:");
+			System.out.println("1. Crear partida");
+			System.out.println("2. Unirse a partida");
+			System.out.println("3. Jugar (prueba)");
+			System.out.println("4. Levantar jugada (prueba)");
+			System.out.println("5. Salir");
 
-            switch (opcion) {
-                case 1:
-                    crearPartida();
-                    break;
+			int opcion = sc.nextInt();
+			sc.nextLine();
 
-                case 2:
-                    unirsePartida();
-                    break;
+			switch (opcion) {
+			case 1:
+				crearPartida();
+				break;
 
-                case 3:
-                    jugar();
-                    break;
+			case 2:
+				lobby();
+				break;
 
-                case 4:
-                    levantar();
-                    break;
+			case 3:
+				jugar();
+				break;
 
-                case 5:
-                    seguir = false;
-                    System.out.println("Saliendo del cliente...");
-                    break;
-            }
-        }
+			case 4:
+				levantar();
+				break;
 
-        sc.close();
-    }
+			case 5:
+				seguir = false;
+				System.out.println("Saliendo del cliente...");
+				break;
+			}
+		}
 
-    // Metodos para aprovechar los endpoint
+		sc.close();
+	}
 
-    public static void crearPartida() {
-        System.out.print("Nombre del jugador: ");
-        String nombre = sc.nextLine();
+	// Metodos para aprovechar los endpoint
 
-        String url = servidor + "/juego/empezar?nombre=" + nombre;
-        llamarEndpoint(url);
-    }
+	public static void crearPartida() {
+		System.out.print("Nombre del jugador: ");
+		String nombre = sc.nextLine();
 
-    public static void unirsePartida() {
-        System.out.print("ID del juego: ");
-        String idJuego = sc.nextLine();
+		String url = servidor + "/juego/empezar?nombre=" + nombre;
+		llamarEndpoint(url);
+	}
 
-        System.out.print("Nombre del jugador: ");
-        String nombre = sc.nextLine();
+	public static void lobby() {
+		System.out.println("--LISTADO DE PARTIDAS--");
+		String url = servidor + "/juego/lista";
+		llamarEndpoint(url);
+		
+		
+	}
 
-        String url = servidor + "/juego/" + idJuego + "/unirse?nombre=" + nombre;
-        llamarEndpoint(url);
-    }
+	public static void unirsePartida() {
+		System.out.print("ID del juego: ");
+		String idJuego = sc.nextLine();
 
-    public static void jugar() {
-        System.out.print("ID del juego: ");
-        String idJuego = sc.nextLine();
+		System.out.print("Nombre del jugador: ");
+		String nombre = sc.nextLine();
 
-        System.out.print("Nombre del jugador: ");
-        String nombre = sc.nextLine();
+		String url = servidor + "/juego/" + idJuego + "/unirse?nombre=" + nombre;
+		llamarEndpoint(url);
+	}
 
-        String url = servidor + "/juego/" + idJuego + "/jugar?nombre=" + nombre;
-        llamarEndpoint(url);
-    }
+	public static void jugar() {
+		System.out.print("ID del juego: ");
+		String idJuego = sc.nextLine();
 
-    public static void levantar() {
-        System.out.print("ID del juego: ");
-        String idJuego = sc.nextLine();
+		System.out.print("Nombre del jugador: ");
+		String nombre = sc.nextLine();
 
-        System.out.print("Nombre del jugador: ");
-        String nombre = sc.nextLine();
+		String url = servidor + "/juego/" + idJuego + "/jugar?nombre=" + nombre;
+		llamarEndpoint(url);
+	}
 
-        String url = servidor + "/juego/" + idJuego + "/levantar?nombre=" + nombre;
-        llamarEndpoint(url);
-    }
+	public static void levantar() {
+		System.out.print("ID del juego: ");
+		String idJuego = sc.nextLine();
 
-    //Clase para llamar Endpoint
-    
-    @SuppressWarnings("deprecation")
+		System.out.print("Nombre del jugador: ");
+		String nombre = sc.nextLine();
+
+		String url = servidor + "/juego/" + idJuego + "/levantar?nombre=" + nombre;
+		llamarEndpoint(url);
+	}
+
+	// Clase para llamar Endpoint
+
+	@SuppressWarnings("deprecation")
 	public static void llamarEndpoint(String urlStr) {
-        try {
-            URL url = new URL(urlStr);
-            HttpURLConnection con = (HttpURLConnection) url.openConnection();
-            con.setRequestMethod("GET");
+		try {
+			URL url = new URL(urlStr);
+			HttpURLConnection con = (HttpURLConnection) url.openConnection();
+			con.setRequestMethod("GET");
 
-            BufferedReader br = new BufferedReader(
-                    new InputStreamReader(con.getInputStream()));
+			BufferedReader br = new BufferedReader(new InputStreamReader(con.getInputStream()));
 
-            String linea;
-            System.out.println("\nRespuesta del servidor:");
+			String linea;
+			System.out.println("\nRespuesta del servidor:");
 
-            while ((linea = br.readLine()) != null) {
-                System.out.println(linea);
-            }
+			while ((linea = br.readLine()) != null) {
+				System.out.println(linea);
+			}
 
-            br.close();
+			br.close();
 
-        } catch (Exception e) {
-            System.out.println("Error al conectar con el servidor");
-        }
-    }
+		} catch (Exception e) {
+			System.out.println("Error al conectar con el servidor");
+		}
+	}
 }
