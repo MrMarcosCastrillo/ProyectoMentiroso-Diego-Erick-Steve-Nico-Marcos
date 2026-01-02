@@ -189,6 +189,34 @@ public class ProyectoMentirosoApplication {
 		}
 		return listaParaCliente;
 	}
+	
+	@GetMapping("/juego/{idJuego}/salir")
+	public Map<String, String> salirDePartida(@PathVariable String idJuego, @RequestParam String nombre) {
+	    Map<String, String> respuesta = new HashMap<>();
+
+	    Juego partida = partidas.get(idJuego);
+	    if (partida == null) {
+	        respuesta.put("error", "No existe la partida con idJuego=" + idJuego);
+	        return respuesta;
+	    }
+
+	    // Buscar jugador y eliminarlo
+	    Jugador jugador = buscarJugadorPorNombre(partida, nombre);
+	    if (jugador != null) {
+	        partida.getJugadores().remove(jugador);
+	        respuesta.put("mensaje", nombre + " ha salido de la partida.");
+
+	        // Si no quedan jugadores, eliminar la partida
+	        if (partida.getJugadores().isEmpty()) {
+	            partidas.remove(idJuego);
+	            respuesta.put("mensaje", "La partida se ha eliminado porque no quedan jugadores.");
+	        }
+	    } else {
+	        respuesta.put("error", "El jugador no estaba en la partida.");
+	    }
+
+	    return respuesta;
+	}
 
 	// metodos auxuliares
 
