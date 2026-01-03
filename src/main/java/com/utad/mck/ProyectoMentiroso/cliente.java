@@ -2,11 +2,10 @@ package com.utad.mck.ProyectoMentiroso;
 
 import java.util.Scanner;
 
-
 public class cliente {
 	static Scanner sc = new Scanner(System.in);
 
-	public void menuDentroPartida() {	
+	public void menuDentroPartida() {
 		boolean seguir = true;
 
 		System.out.println("ELIGE TU JUGADA:" + "\n");

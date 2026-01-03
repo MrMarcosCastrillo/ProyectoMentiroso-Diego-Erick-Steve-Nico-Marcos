@@ -9,8 +9,6 @@ import java.util.List;
 import java.util.Map;
 import java.util.Scanner;
 
-
-
 public class ClienteMentiroso {
 
 	static Scanner sc = new Scanner(System.in);
@@ -78,8 +76,9 @@ public class ClienteMentiroso {
 		System.out.println("--LISTADO DE PARTIDAS--");
 		String url = servidor + "/juego/lista";
 		llamarEndpoint(url);
-		
-		
+
+		unirsePartida();// despues de verlo se permite unirse
+
 	}
 
 	public static void unirsePartida() {
@@ -100,7 +99,18 @@ public class ClienteMentiroso {
 		System.out.print("Nombre del jugador: ");
 		String nombre = sc.nextLine();
 
-		String url = servidor + "/juego/" + idJuego + "/jugar?nombre=" + nombre;
+		System.out.print("Cartas a tirar (fisicas con palo) (ej: 2C,10D): ");
+		String cartas = sc.nextLine();
+
+		System.out.print("Tipo declarado (carta/pareja/dosparejas/trio/full/poker): ");
+		String tipo = sc.nextLine();
+
+		System.out.print("Valores declarados (sin palo) (ej: 10 o 10,8): ");
+		String valores = sc.nextLine();
+
+		String url = servidor + "/juego/" + idJuego + "/jugada" + "?nombre=" + nombre + "&cartas=" + cartas + "&tipo="
+				+ tipo + "&valores=" + valores;
+
 		llamarEndpoint(url);
 	}
 
@@ -139,4 +149,5 @@ public class ClienteMentiroso {
 			System.out.println("Error al conectar con el servidor");
 		}
 	}
+
 }

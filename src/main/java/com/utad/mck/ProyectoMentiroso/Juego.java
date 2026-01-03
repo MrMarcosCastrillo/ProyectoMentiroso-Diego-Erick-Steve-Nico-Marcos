@@ -11,20 +11,21 @@ public class Juego {
 	private static final String[] NUMERO = { "2", "3", "4", "5", "6", "7", "8", "9", "10", "11", "12", "1" };
 
 	private String idJuego;
-	private List<Jugador> jugadores; // Se inicializará en el constructor
+	private List<Jugador> jugadores;
 	private int idJugadorActual;
 	private boolean partidaTerminada;
-	private List<String> mazo; // Se inicializará en el constructor
+	private List<String> mazo;
 	private Map<String, Object> ultimaJugada = new java.util.HashMap<>();
 	private List<String> cartasMesa = new ArrayList<>(); //
-	private List<String> ultimasCartasTiradasFisicas = new ArrayList<>(); // necesario para hacer el endpoint levantar
-	private String ultimaDeclaracion = ""; // lo que diga el cliente si son ases, o corazones o trebloes...
+	private List<String> ultimasCartasTiradasFisicas = new ArrayList<>(); // para hacer el endpoint levantar
+	private String ultimaDeclaracion = "";
+	private int turnosCreador = 0;
 
-	// CONSTRUCTOR ÚNICO: Se encarga de dejar el juego listo
+	// CONSTRUCTOR
 	public Juego() {
 		this.idJuego = UUID.randomUUID().toString();
-		this.jugadores = new ArrayList<>(); // ¡Crucial para evitar NullPointerException!
-		this.mazo = new ArrayList<>(); // ¡Crucial para evitar NullPointerException!
+		this.jugadores = new ArrayList<>();
+		this.mazo = new ArrayList<>();
 		this.cartasMesa = new ArrayList<>();
 		this.idJugadorActual = 0;
 		this.partidaTerminada = false;
@@ -69,9 +70,6 @@ public class Juego {
 			this.ultimaJugada.clear();
 		}
 	}
-
-	
-	
 
 	// GETTERS Y SETTERS
 	public String getIdJuego() {
@@ -131,7 +129,34 @@ public class Juego {
 
 	// Pasa el turno al siguiente jugador
 	public void pasarTurno() {
-		idJugadorActual = (idJugadorActual + 1) % jugadores.size();
+		if (jugadores.isEmpty())
+			return; // por si al pasar de turno, pasamos a un jugador que esta eliminado
+
+		int total = jugadores.size();
+		int contador = 0;
+
+		do {
+			idJugadorActual = (idJugadorActual + 1) % total;
+			contador++;
+		} while (jugadores.get(idJugadorActual).isEstaEliminado() && contador < total);
+	}
+
+	public Jugador getGanadorSiExiste() {
+		Jugador ganador = null; // el ultimo ganador sera el que quede el unico en una partida
+		int jugadoresActivos = 0; // cuantos no stan eliminados todavia
+
+		for (Jugador j : jugadores) {
+			if (!j.isEstaEliminado()) {
+				jugadoresActivos++;
+				ganador = j;
+			}
+		}
+
+		if (jugadoresActivos == 1) { // si solo queda 1 se coge el ganador
+			return ganador;
+		} else {
+			return null;
+		}
 	}
 
 	public List<String> getCartasEnMesa() {
@@ -168,6 +193,14 @@ public class Juego {
 
 	public void setUltimaDeclaracion(String ultimaDeclaracion) {
 		this.ultimaDeclaracion = ultimaDeclaracion;
+	}
+
+	public int getTurnosCreador() {
+		return turnosCreador;
+	}
+
+	public void sumarTurnosCreador() {
+		turnosCreador++;
 	}
 
 }
