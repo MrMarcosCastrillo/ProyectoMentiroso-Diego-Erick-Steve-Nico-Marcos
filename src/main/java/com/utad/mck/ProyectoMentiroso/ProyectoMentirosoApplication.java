@@ -52,50 +52,74 @@ public class ProyectoMentirosoApplication {
 
 	}
 
-	@GetMapping("/juego/{idJuego}/jugar") // endpoint
-	public String juegarJuego(@RequestParam(value = "nombre", defaultValue = "World") String name) {
-
-		return String.format("Hello %s!", name);
-	}
+//	@GetMapping("/juego/{idJuego}/jugar") // endpoint
+//	public String juegarJuego(@RequestParam(value = "nombre", defaultValue = "World") String name) {
+//
+//		return String.format("Hello %s!", name);
+//	}
 
 	@GetMapping("/juego/{idJuego}/levantar")
 	public Map<String, Object> levantar(@PathVariable String idJuego, @RequestParam String nombre) {
 		Map<String, Object> respuesta = new HashMap<>();
 		Juego partida = partidas.get(idJuego);
+		if (partida == null) {
+			respuesta.put("error", "No existe la partida");
+			return respuesta;
+		}
+		if (partida.getUltimaJugada() == null || partida.getUltimaJugada().isEmpty()) {
+			respuesta.put("error", "No hay jugada anterior que levantar");
+			return respuesta;
+		}
 
-		//nombre ultimo jugador
+		// nombre ultimo jugador
 		String nombreSospechoso = (String) partida.getUltimaJugada().get("jugador");
 
-		//comprobar si miente o no 
+		// comprobar si miente o no
 		boolean mintio = false;
 		for (String carta : partida.getUltimasCartasTiradasFisicas()) {
-			//comprobamos que la carta empieza con la ultima declaracion que se dio
+			// comprobamos que la carta empieza con la ultima declaracion que se dio
 			if (!carta.startsWith(partida.getUltimaDeclaracion())) {
 				mintio = true;
 				break;
 			}
 		}
 
-		//si miente se aplica el castigo
+		// si miente se aplica el castigo
 		if (mintio) {
-			//si el sospechoso miente se lleva las cartas
+			// si el sospechoso miente se lleva las cartas
 			Jugador sospechoso = buscarJugadorPorNombre(partida, nombreSospechoso);
 			partida.chuparCartas(sospechoso);
-			respuesta.put("resultado", "¡Cazado! " + nombreSospechoso + " mentía y se lleva la mesa.");
+			sospechoso.setEstaEliminado(true);
+			respuesta.put("resultado", "¡Cazado! " + nombreSospechoso + " mentía y se lleva la mesa. Es eliminado");
 		} else {
-			//si no el acusador se las lleva
+			// si no el acusador se las lleva
 			Jugador acusador = buscarJugadorPorNombre(partida, nombre);
 			partida.chuparCartas(acusador);
-			respuesta.put("resultado", "Era verdad... " + nombre + " se lleva toda la mesa.");
+			acusador.setEstaEliminado(true);
+			respuesta.put("resultado", "Era verdad... " + nombre + " se lleva toda la mesa. Es eliminado");
 		}
 
+		Jugador ganador = partida.getGanadorSiExiste();
+		if (ganador != null) {
+			partida.setPartidaTerminada(true);
+			respuesta.put("ganador", ganador.getNombre());
+		}
+
+		Jugador yo = buscarJugadorPorNombre(partida, nombre);
+		if (yo != null) {
+			respuesta.put("misCartas", yo.getCartas());
+			respuesta.put("estoyEliminado", yo.isEstaEliminado());
+		} // para poder ver siempre mis cartas
+
 		return respuesta;
+
 	}
 
 	// Hacer la jugada
 	@GetMapping("/juego/{idJuego}/jugada")
 	public Map<String, Object> jugada(@PathVariable("idJuego") String idJuego, @RequestParam("nombre") String nombre,
-			@RequestParam("tipo") String tipo, @RequestParam("valores") String valores) {
+			@RequestParam("cartas") String cartasStr, @RequestParam("tipo") String tipo,
+			@RequestParam("valores") String valores) {
 		Map<String, Object> respuesta = new HashMap<>();
 
 		Juego partida = partidas.get(idJuego);
@@ -104,16 +128,8 @@ public class ProyectoMentirosoApplication {
 			return respuesta;
 		}
 
-		Jugador jugador = null;
-		boolean encontrado = false;
-
-		for (Jugador j : partida.getJugadores()) {
-			if (!encontrado && j.getNombre().equalsIgnoreCase(nombre)) {
-				jugador = j;
-				encontrado = true;
-			}
-		}
-
+		// Buscar jugador
+		Jugador jugador = buscarJugadorPorNombre(partida, nombre);
 		if (jugador == null) {
 			respuesta.put("error", "No existe el jugador '" + nombre + "' en esta partida");
 			return respuesta;
@@ -122,25 +138,82 @@ public class ProyectoMentirosoApplication {
 		// Comprobar si es su turno
 		Jugador jugadorTurno = partida.getJugadorActual();
 
-		if (!jugadorTurno.getNombre().equalsIgnoreCase(nombre)) {
-			respuesta.put("error", "No es tu turno. Le toca a " + jugadorTurno.getNombre());
+		if (jugadorTurno == null || !jugadorTurno.getNombre().equalsIgnoreCase(nombre)) {
+			respuesta.put("error",
+					"No es tu turno. Le toca a " + (jugadorTurno == null ? "nadie" : jugadorTurno.getNombre()));
 			return respuesta;
 		}
+
+		// Parsear cartas físicas
+		List<String> cartasPedidas = new ArrayList<>();
+		for (String c : cartasStr.split(",")) {
+			String carta = c.trim();
+			if (!carta.isEmpty())
+				cartasPedidas.add(carta);
+		}
+
+		if (cartasPedidas.isEmpty()) {
+			respuesta.put("error", "Debes tirar al menos 1 carta");
+			return respuesta;
+		}
+
+		// Validar que el jugador TIENE esas cartas en su mano
+		// y evitar duplicados)
+		List<String> mano = jugador.getCartas();
+		List<String> cartasAEliminar = new ArrayList<>();
+
+		for (String carta : cartasPedidas) {
+			if (!mano.contains(carta)) {
+				respuesta.put("error", "No tienes la carta " + carta + " en tu mano. Mano actual: " + mano);
+				return respuesta;
+			}
+			cartasAEliminar.add(carta);
+		}
+
+		// 0) Si hay jugada anterior, comprobar que esta declaración la supera
+		if (partida.getUltimaJugada() != null && !partida.getUltimaJugada().isEmpty()) {
+			String tipoAnterior = (String) partida.getUltimaJugada().get("tipo");
+			String valoresAnterior = (String) partida.getUltimaJugada().get("valores");
+
+			if (!esSuperior(tipo, valores, tipoAnterior, valoresAnterior)) {
+				respuesta.put("error",
+						"No se admite: no supera la jugada anterior (" + tipoAnterior + " " + valoresAnterior + ")");
+				respuesta.put("turnoActual", partida.getJugadorActual().getNombre());
+				return respuesta;
+			}
+		}
+
+		// 3) Mover mano -> mesa (quitar de la mano)
+		for (String carta : cartasAEliminar) {
+			mano.remove(carta); // quita 1 ocurrencia
+		}
+
+		// 4) Registrar en la partida (mesa + última jugada real + declaración)
+		partida.registrarJugada(cartasPedidas, valorPrincipalString(valores));
 
 		Map<String, Object> ultima = new HashMap<>();
 		ultima.put("jugador", nombre);
 		ultima.put("tipo", tipo);
 		ultima.put("valores", valores);
-
 		partida.setUltimaJugada(ultima);
+
+		// Si juega el creador (primer jugador), contamos su turno
+		Jugador creador = partida.getJugadores().get(0);
+		if (jugador.getNombre().equalsIgnoreCase(creador.getNombre())) {
+			partida.sumarTurnosCreador();
+		}
 
 		// Pasar turno al siguiente jugador
 		partida.pasarTurno();
 
 		respuesta.put("ok", true);
 		respuesta.put("idJuego", idJuego);
-		respuesta.put("jugadaRegistrada", ultima);
+		respuesta.put("jugador", nombre);
+		respuesta.put("tiradas", cartasPedidas);
+		respuesta.put("manoRestante", jugador.getCartas());
+		respuesta.put("mesa", partida.getCartasMesa());
 		respuesta.put("turnoSiguiente", partida.getJugadorActual().getNombre());
+
 		return respuesta;
 	}
 
@@ -155,8 +228,27 @@ public class ProyectoMentirosoApplication {
 		// con la variable del pathvariable sacamos el id
 		Juego partidaExistente = partidas.get(idJuego);
 
+		if (partidaExistente == null) {
+			respuesta.put("error", "No existe la partida con idJuego=" + idJuego);
+			return respuesta;
+		} // por si mete mal el id q no pete
+
+		// Comprobar si el jugador ya está en la partida
+		for (Jugador j : partidaExistente.getJugadores()) {
+			if (j.getNombre().equalsIgnoreCase(nomJugador)) {
+				respuesta.put("error", "El jugador ya está en la partida");
+				return respuesta;
+			}
+		}
+
 		if (partidaExistente.getJugadores().size() >= 5) {
 			respuesta.put("error", "La partida está llena. Máximo 5 jugadores.");
+			return respuesta;
+		}
+
+		// Comprobar si es tarde para unirse (2ª ronda del creador)
+		if (partidaExistente.getTurnosCreador() >= 2) {
+			respuesta.put("error", "Es tarde para unirse a la partida");
 			return respuesta;
 		}
 
@@ -171,6 +263,31 @@ public class ProyectoMentirosoApplication {
 		respuesta.put("idJuego", partidaExistente.getIdJuego());
 		respuesta.put("cartas", jugadorNuevo.getCartas());
 		respuesta.put("mensaje", "Te has unido a la partida exitosamente");
+
+		// Nombres de los jugadores actuales
+		List<String> nombres = new ArrayList<>();
+		for (Jugador j : partidaExistente.getJugadores()) {
+			nombres.add(j.getNombre());
+		}
+		respuesta.put("jugadoresActuales", nombres);
+
+		// ¿Me toca jugar ahora?
+		Jugador actual = partidaExistente.getJugadorActual();
+		boolean meToca = false;
+		if (actual != null) {
+			meToca = actual.getNombre().equalsIgnoreCase(nomJugador);
+		}
+		respuesta.put("meToca", meToca);
+
+		// Si me toca y hay jugada anterior, la mostramos
+		if (meToca) {
+			if (!partidaExistente.getUltimaJugada().isEmpty()) {
+				respuesta.put("jugadaAnterior", partidaExistente.getUltimaJugada());
+			} else {
+				respuesta.put("jugadaAnterior", null);
+				respuesta.put("mensajeJugadaAnterior", "Eres el primero en jugar, no hay jugada anterior.");
+			}
+		}
 
 		return respuesta;
 	}
@@ -202,7 +319,76 @@ public class ProyectoMentirosoApplication {
 		return null;
 	}
 
-	// metodo para repartir cartas
+	private String valorPrincipalString(String valores) {
+		if (valores == null)
+			return "";
+		String[] partes = valores.split(",");
+		return partes[0].trim(); // ej "10,8" -> "10"
+	}
+
+	// la comparación de jugadas
+	private boolean esSuperior(String tipoNuevo, String valoresNuevo, String tipoAnt, String valoresAnt) {
+		int rNuevo = rankTipo(tipoNuevo);
+		int rAnt = rankTipo(tipoAnt);
+
+		if (rNuevo > rAnt)
+			return true;
+		if (rNuevo < rAnt)
+			return false;
+
+		int vNuevo = valorPrincipal(valoresNuevo);
+		int vAnt = valorPrincipal(valoresAnt);
+
+		return vNuevo > vAnt;
+	}
+
+	private int rankTipo(String tipo) {
+		if (tipo == null)
+			return 0;
+		tipo = tipo.toLowerCase().trim();
+
+		if (tipo.equals("carta"))
+			return 1;
+		if (tipo.equals("pareja"))
+			return 2;
+		if (tipo.equals("dosparejas"))
+			return 3;
+		if (tipo.equals("trio"))
+			return 4;
+		if (tipo.equals("full"))
+			return 5;
+		if (tipo.equals("poker"))
+			return 6;
+
+		return 0;
+	}
+
+	private int valorPrincipal(String valores) {
+		if (valores == null || valores.trim().isEmpty())
+			return -1;
+		String[] partes = valores.split(",");
+		String v = partes[0].trim();
+		return rankValor(v);
+	}
+
+	private int rankValor(String v) {
+		if (v == null)
+			return -1;
+		v = v.trim();
+
+		if (v.equals("1"))
+			return 14; // As
+		if (v.equals("12"))
+			return 13; // Reina (según tu baraja)
+		if (v.equals("11"))
+			return 12; // Jota (según tu baraja)
+
+		try {
+			return Integer.parseInt(v); // 2..10
+		} catch (NumberFormatException e) {
+			return -1;
+		}
+	}
 
 	public static void main(String[] args) {
 		SpringApplication.run(ProyectoMentirosoApplication.class, args);
