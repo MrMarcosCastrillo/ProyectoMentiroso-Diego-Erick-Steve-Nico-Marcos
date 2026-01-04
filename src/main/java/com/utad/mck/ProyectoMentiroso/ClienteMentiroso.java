@@ -9,24 +9,21 @@ import java.util.Scanner;
 public class ClienteMentiroso {
 
 	static Scanner sc = new Scanner(System.in);
+	static String nombreJugador = null;
+	static String idJuegoActual = null;
 
-	// Dirección del servidor, localhost porque el servidor corre en el mismo
-	// ordenador
 	static String servidor = "http://localhost:8080";
 
 	public static void main(String[] args) {
-
 		boolean seguir = true;
-
 		System.out.println("-- CLIENTE JUEGO DEL MENTIROSO --");
 
 		while (seguir) {
-
-			System.out.println("\nMENU:");
+			System.out.println("----MENU----");
 			System.out.println("1. Crear partida");
-			System.out.println("2. Unirse a partida");
-			System.out.println("3. Jugar (prueba)");
-			System.out.println("4. Levantar jugada (prueba)");
+			System.out.println("2. Unirse a partida (Lobby)");
+			System.out.println("3. Jugar");
+			System.out.println("4. Levantar jugada");
 			System.out.println("5. Salir");
 
 			int opcion = sc.nextInt();
@@ -36,115 +33,96 @@ public class ClienteMentiroso {
 			case 1:
 				crearPartida();
 				break;
-
 			case 2:
 				lobby();
 				break;
-
 			case 3:
 				jugar();
 				break;
-
 			case 4:
 				levantar();
 				break;
-
 			case 5:
 				seguir = false;
-				System.out.println("Saliendo del cliente...");
+				System.out.println("Saliendo...");
 				break;
 			}
 		}
-
 		sc.close();
 	}
 
-	// Metodos para aprovechar los endpoint
-
 	public static void crearPartida() {
 		System.out.print("Nombre del jugador: ");
-		String nombre = sc.nextLine();
+		nombreJugador = sc.nextLine();
 
-		String url = servidor + "/juego/empezar?nombre=" + nombre;
-		llamarEndpoint(url);
+		String url = servidor + "/juego/empezar?nombre=" + nombreJugador;
+		String json = llamarEndpoint(url);
+
+		if (!json.isEmpty() && json.contains("\"idJuego\":\"")) {
+			//esto separa la respuesta y pilla exactamente el id de la partida
+			idJuegoActual = json.split("\"")[7];
+			System.out.println("ID guardado: " + idJuegoActual);
+		}
 	}
 
 	public static void lobby() {
 		System.out.println("--LISTADO DE PARTIDAS--");
-		String url = servidor + "/juego/lista";
-		llamarEndpoint(url);
-
-		unirsePartida();// despues de verlo se permite unirse
-
+		llamarEndpoint(servidor + "/juego/lista");
+		unirsePartida();
 	}
 
 	public static void unirsePartida() {
 		System.out.print("ID del juego: ");
-		String idJuego = sc.nextLine();
-
+		idJuegoActual = sc.nextLine();
 		System.out.print("Nombre del jugador: ");
-		String nombre = sc.nextLine();
+		nombreJugador = sc.nextLine();
 
-		String url = servidor + "/juego/" + idJuego + "/unirse?nombre=" + nombre;
+		String url = servidor + "/juego/" + idJuegoActual + "/unirse?nombre=" + nombreJugador;
 		llamarEndpoint(url);
 	}
 
 	public static void jugar() {
-		System.out.print("ID del juego: ");
-		String idJuego = sc.nextLine();
-
-		System.out.print("Nombre del jugador: ");
-		String nombre = sc.nextLine();
-
-		System.out.print("Cartas a tirar (fisicas con palo) (ej: 2C,10D): ");
+		if (idJuegoActual == null) {
+			System.out.println("Error: No estas en ninguna partida");
+			return;
+		}
+		System.out.print("Cartas (ej: 2C,10D,4T): ");
 		String cartas = sc.nextLine();
-
-		System.out.print("Tipo declarado (carta/pareja/dosparejas/trio/full/poker): ");
+		System.out.print("Tipo (carta/pareja/trio): ");
 		String tipo = sc.nextLine();
-
-		System.out.print("Valores declarados (sin palo) (ej: 10 o 10,8): ");
+		System.out.print("Valores (ej: 10,2,4): ");
 		String valores = sc.nextLine();
 
-		String url = servidor + "/juego/" + idJuego + "/jugada" + "?nombre=" + nombre + "&cartas=" + cartas + "&tipo="
-				+ tipo + "&valores=" + valores;
-
+		String url = servidor + "/juego/" + idJuegoActual + "/jugada?nombre=" + nombreJugador + "&cartas=" + cartas
+				+ "&tipo=" + tipo + "&valores=" + valores;
 		llamarEndpoint(url);
 	}
 
 	public static void levantar() {
-		System.out.print("ID del juego: ");
-		String idJuego = sc.nextLine();
-
-		System.out.print("Nombre del jugador: ");
-		String nombre = sc.nextLine();
-
-		String url = servidor + "/juego/" + idJuego + "/levantar?nombre=" + nombre;
+		if (idJuegoActual == null)
+			return;
+		String url = servidor + "/juego/" + idJuegoActual + "/levantar?nombre=" + nombreJugador;
 		llamarEndpoint(url);
 	}
 
-	// Clase para llamar Endpoint
-
-	@SuppressWarnings("deprecation")
-	public static void llamarEndpoint(String urlStr) {
+	public static String llamarEndpoint(String urlStr) {
+		StringBuilder respuesta = new StringBuilder();
 		try {
 			URL url = new URL(urlStr);
 			HttpURLConnection con = (HttpURLConnection) url.openConnection();
 			con.setRequestMethod("GET");
 
 			BufferedReader br = new BufferedReader(new InputStreamReader(con.getInputStream()));
-
 			String linea;
 			System.out.println("\nRespuesta del servidor:");
-
 			while ((linea = br.readLine()) != null) {
 				System.out.println(linea);
+				respuesta.append(linea);
 			}
-
 			br.close();
-
 		} catch (Exception e) {
-			System.out.println("Error al conectar con el servidor");
+			System.out.println("Error al conectar con el servidor.");
 		}
+		return respuesta.toString();
 	}
-
 }
