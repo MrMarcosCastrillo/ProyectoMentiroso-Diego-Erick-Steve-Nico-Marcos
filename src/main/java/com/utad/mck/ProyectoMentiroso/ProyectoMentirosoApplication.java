@@ -73,12 +73,11 @@ public class ProyectoMentirosoApplication {
 
 		// comprobar si miente o no
 		boolean mintio = false;
+		String declaracion = partida.getUltimaDeclaracion();
+
 		for (String carta : partida.getUltimasCartasTiradasFisicas()) {
-			// comprobamos que la carta empieza con la ultima declaracion que se dio
-			if (!carta.startsWith(partida.getUltimaDeclaracion())) {
-				mintio = true;
-				break;
-			}
+			String valorReal = valorDeCarta(carta);
+			mintio = mintio || !valorReal.equals(declaracion);
 		}
 
 		// si miente se aplica el castigo
@@ -154,6 +153,18 @@ public class ProyectoMentirosoApplication {
 			return respuesta;
 		}
 
+		int n = cartasPedidas.size();
+		tipo = tipo.toLowerCase().trim();
+
+		boolean valido = (tipo.equals("carta") && n == 1) || (tipo.equals("pareja") && n == 2)
+				|| (tipo.equals("dosparejas") && n == 4) || (tipo.equals("trio") && n == 3)
+				|| (tipo.equals("full") && n == 5) || (tipo.equals("poker") && n == 4);
+
+		if (!valido) {
+			respuesta.put("error", "El tipo '" + tipo + "' no coincide con el número de cartas (" + n + ")");
+			return respuesta;
+		} // para ver que coincide con el numero de cartas a la hora de echarlas
+
 		// Validar que el jugador TIENE esas cartas en su mano
 		// y evitar duplicados)
 		List<String> mano = jugador.getCartas();
@@ -167,7 +178,7 @@ public class ProyectoMentirosoApplication {
 			cartasAEliminar.add(carta);
 		}
 
-		// 0) Si hay jugada anterior, comprobar que esta declaración la supera
+		// Si hay jugada anterior, comprobar que esta declaración la supera
 		if (partida.getUltimaJugada() != null && !partida.getUltimaJugada().isEmpty()) {
 			String tipoAnterior = (String) partida.getUltimaJugada().get("tipo");
 			String valoresAnterior = (String) partida.getUltimaJugada().get("valores");
@@ -243,13 +254,13 @@ public class ProyectoMentirosoApplication {
 			return respuesta;
 		}
 
-		// Comprobar si es tarde para unirse (2ª ronda del creador)
+		// Comprobar si es tarde para unirse
 		if (partidaExistente.getTurnosCreador() >= 2) {
 			respuesta.put("error", "Es tarde para unirse a la partida");
 			return respuesta;
 		}
 
-		// Robara del mazo otras 5 cartas (SERAN DE ESE MISMO MAZO
+		// Robara del mazo otras 5 cartas
 		List<String> cartasJugador = partidaExistente.robarCartas(5);
 
 		Jugador jugadorNuevo = new Jugador(nomJugador, nomJugador, cartasJugador, false);
@@ -376,15 +387,20 @@ public class ProyectoMentirosoApplication {
 		if (v.equals("1"))
 			return 14; // As
 		if (v.equals("12"))
-			return 13; // Reina (según tu baraja)
+			return 13; // Reina
 		if (v.equals("11"))
-			return 12; // Jota (según tu baraja)
+			return 12; // Jota
 
 		try {
 			return Integer.parseInt(v); // 2..10
 		} catch (NumberFormatException e) {
 			return -1;
 		}
+	}
+
+	private String valorDeCarta(String carta) {
+		// "10D" -> "10"
+		return carta.replaceAll("[^0-9]", "");
 	}
 
 	public static void main(String[] args) {

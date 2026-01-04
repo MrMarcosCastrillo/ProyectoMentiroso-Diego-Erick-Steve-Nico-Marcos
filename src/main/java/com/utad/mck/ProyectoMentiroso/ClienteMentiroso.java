@@ -59,7 +59,7 @@ public class ClienteMentiroso {
 		String json = llamarEndpoint(url);
 
 		if (!json.isEmpty() && json.contains("\"idJuego\":\"")) {
-			//esto separa la respuesta y pilla exactamente el id de la partida
+			// esto separa la respuesta y pilla exactamente el id de la partida
 			idJuegoActual = json.split("\"")[7];
 			System.out.println("ID guardado: " + idJuegoActual);
 		}
