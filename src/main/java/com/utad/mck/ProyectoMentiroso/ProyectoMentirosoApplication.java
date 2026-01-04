@@ -52,98 +52,125 @@ public class ProyectoMentirosoApplication {
 
 	}
 
-	@GetMapping("/juego/{idJuego}/jugar") // endpoint
-	public String juegarJuego(@RequestParam(value = "nombre", defaultValue = "World") String name) {
-
-		return String.format("Hello %s!", name);
-	}
-
 	@GetMapping("/juego/{idJuego}/levantar")
 	public Map<String, Object> levantar(@PathVariable String idJuego, @RequestParam String nombre) {
-		Map<String, Object> respuesta = new HashMap<>();
-		Juego partida = partidas.get(idJuego);
+	    Map<String, Object> respuesta = new HashMap<>();
+	    Juego partida = partidas.get(idJuego);
 
-		//nombre ultimo jugador
-		String nombreSospechoso = (String) partida.getUltimaJugada().get("jugador");
+	    if (partida == null) {
+	        respuesta.put("error", "Partida no encontrada");
+	        return respuesta;
+	    }
 
-		//comprobar si miente o no 
-		boolean mintio = false;
-		for (String carta : partida.getUltimasCartasTiradasFisicas()) {
-			//comprobamos que la carta empieza con la ultima declaracion que se dio
-			if (!carta.startsWith(partida.getUltimaDeclaracion())) {
-				mintio = true;
-				break;
-			}
-		}
+	    String nombreUltimoJugador = partida.getJugadorUltimaJugada();
 
-		//si miente se aplica el castigo
-		if (mintio) {
-			//si el sospechoso miente se lleva las cartas
-			Jugador sospechoso = buscarJugadorPorNombre(partida, nombreSospechoso);
-			partida.chuparCartas(sospechoso);
-			respuesta.put("resultado", "¡Cazado! " + nombreSospechoso + " mentía y se lleva la mesa.");
-		} else {
-			//si no el acusador se las lleva
-			Jugador acusador = buscarJugadorPorNombre(partida, nombre);
-			partida.chuparCartas(acusador);
-			respuesta.put("resultado", "Era verdad... " + nombre + " se lleva toda la mesa.");
-		}
+	    boolean mintio = false;
+	    for (String carta : partida.getUltimasCartasTiradasFisicas()) {
+	        if (!carta.startsWith(partida.getUltimaDeclaracion())) {
+	            mintio = true;
+	            break;
+	        }
+	    }
 
-		return respuesta;
+	    Jugador eliminado;
+	    String mensaje;
+	    if (mintio) {
+	        // Último jugador mintió -> se elimina
+	        eliminado = buscarJugadorPorNombre(partida, nombreUltimoJugador);
+	        mensaje = "¡Cazado! " + nombreUltimoJugador + " mentía y ha sido eliminado.";
+	    } else {
+	        // Acusador mintió -> se elimina
+	        eliminado = buscarJugadorPorNombre(partida, nombre);
+	        mensaje = "Era verdad... " + nombre + " mintió y ha sido eliminado.";
+	    }
+
+	    if (eliminado != null) {
+	        partida.getJugadores().remove(eliminado);
+	    }
+
+	    // Pasar turno solo si queda más de un jugador
+	    if (partida.getJugadores().size() > 0) {
+	        partida.pasarTurno();
+	    }
+
+	    // Respuesta con estado actualizado
+	    respuesta.put("resultado", mensaje);
+	    respuesta.put("jugadoresRestantes", partida.getJugadores().stream().map(Jugador::getNombre).toList());
+	    respuesta.put("turnoSiguiente", partida.getJugadorActual() != null ? partida.getJugadorActual().getNombre() : null);
+
+	    return respuesta;
 	}
 
 	// Hacer la jugada
 	@GetMapping("/juego/{idJuego}/jugada")
-	public Map<String, Object> jugada(@PathVariable("idJuego") String idJuego, @RequestParam("nombre") String nombre,
-			@RequestParam("tipo") String tipo, @RequestParam("valores") String valores) {
-		Map<String, Object> respuesta = new HashMap<>();
+	public Map<String, Object> jugada(
+	        @PathVariable String idJuego,
+	        @RequestParam String nombre,
+	        @RequestParam String tipo,
+	        @RequestParam String valores,
+	        @RequestParam String declaracion) { // NUEVO: lo que anuncia
 
-		Juego partida = partidas.get(idJuego);
-		if (partida == null) {
-			respuesta.put("error", "No existe la partida con idJuego=" + idJuego);
-			return respuesta;
-		}
+	    Map<String, Object> respuesta = new HashMap<>();
+	    Juego partida = partidas.get(idJuego);
 
-		Jugador jugador = null;
-		boolean encontrado = false;
+	    if (partida == null) {
+	        respuesta.put("error", "No existe la partida");
+	        return respuesta;
+	    }
 
-		for (Jugador j : partida.getJugadores()) {
-			if (!encontrado && j.getNombre().equalsIgnoreCase(nombre)) {
-				jugador = j;
-				encontrado = true;
-			}
-		}
+	    Jugador jugador = buscarJugadorPorNombre(partida, nombre);
+	    if (jugador == null) {
+	        respuesta.put("error", "Jugador no encontrado");
+	        return respuesta;
+	    }
 
-		if (jugador == null) {
-			respuesta.put("error", "No existe el jugador '" + nombre + "' en esta partida");
-			return respuesta;
-		}
+	    // Turno
+	    Jugador turno = partida.getJugadorActual();
+	    if (!turno.getNombre().equalsIgnoreCase(nombre)) {
+	        respuesta.put("error", "No es tu turno. Le toca a " + turno.getNombre());
+	        return respuesta;
+	    }
 
-		// Comprobar si es su turno
-		Jugador jugadorTurno = partida.getJugadorActual();
+	    // Bloqueo si está solo
+	    if (!hayMasDeUnJugador(partida)) {
+	        respuesta.put("error", "No puedes jugar hasta que haya al menos 2 jugadores.");
+	        return respuesta;
+	    }
 
-		if (!jugadorTurno.getNombre().equalsIgnoreCase(nombre)) {
-			respuesta.put("error", "No es tu turno. Le toca a " + jugadorTurno.getNombre());
-			return respuesta;
-		}
+	    // Cartas que dará físicamente
+	    List<String> cartasJugadas = List.of(valores.split(" "));
 
-		Map<String, Object> ultima = new HashMap<>();
-		ultima.put("jugador", nombre);
-		ultima.put("tipo", tipo);
-		ultima.put("valores", valores);
+	    // Comprobar que las tiene
+	    if (!jugador.getCartas().containsAll(cartasJugadas)) {
+	        respuesta.put("error", "No tienes esas cartas");
+	        return respuesta;
+	    }
 
-		partida.setUltimaJugada(ultima);
+	    // Quitar las cartas de la mano
+	    jugador.getCartas().removeAll(cartasJugadas);
 
-		// Pasar turno al siguiente jugador
-		partida.pasarTurno();
+	    // Registrar la jugada en Juego
+	    partida.registrarJugada(nombre, cartasJugadas, declaracion);
 
-		respuesta.put("ok", true);
-		respuesta.put("idJuego", idJuego);
-		respuesta.put("jugadaRegistrada", ultima);
-		respuesta.put("turnoSiguiente", partida.getJugadorActual().getNombre());
-		return respuesta;
+	    // Jugada VISIBLE para los demás
+	    Map<String, Object> ultima = new HashMap<>();
+	    ultima.put("jugador", nombre);
+	    ultima.put("tipo", tipo);
+	    ultima.put("declaracion", declaracion);
+	    ultima.put("cantidad", cartasJugadas.size());
+
+	    partida.setUltimaJugada(ultima);
+
+	    // Pasar turno
+	    partida.pasarTurno();
+
+	    respuesta.put("ok", true);
+	    respuesta.put("jugadaRegistrada", ultima);
+	    respuesta.put("turnoSiguiente", partida.getJugadorActual().getNombre());
+
+	    return respuesta;
 	}
-
+	
 	@GetMapping("/juego/{idJuego}/unirse")
 	public Map<String, Object> unirseJuego(@PathVariable("idJuego") String idJuego, // path variable saca la id de la
 																					// url
@@ -217,6 +244,37 @@ public class ProyectoMentirosoApplication {
 
 	    return respuesta;
 	}
+	
+	//endpoint para saber el estado de la partida
+	
+	@GetMapping("/juego/{idJuego}/estado")
+	public Map<String, Object> estadoPartida(
+	        @PathVariable String idJuego,
+	        @RequestParam String nombre) {
+
+	    Map<String, Object> respuesta = new HashMap<>();
+	    Juego partida = partidas.get(idJuego);
+
+	    if (partida == null) {
+	        respuesta.put("error", "La partida no existe");
+	        return respuesta;
+	    }
+
+	    Jugador jugador = buscarJugadorPorNombre(partida, nombre);
+	    if (jugador == null) {
+	        respuesta.put("error", "Jugador no encontrado");
+	        return respuesta;
+	    }
+
+	    Jugador turnoActual = partida.getJugadorActual();
+
+	    respuesta.put("tuTurno", turnoActual != null && turnoActual.getNombre().equalsIgnoreCase(nombre));
+	    respuesta.put("turnoDe", turnoActual != null ? turnoActual.getNombre() : null);
+	    respuesta.put("ultimaJugada", partida.getUltimaJugada());
+	    respuesta.put("jugadoresActivos", partida.getJugadores().stream().map(Jugador::getNombre).toList());
+
+	    return respuesta;
+	}
 
 	// metodos auxuliares
 
@@ -228,6 +286,10 @@ public class ProyectoMentirosoApplication {
 			}
 		}
 		return null;
+	}
+	
+	private boolean hayMasDeUnJugador(Juego partida) {
+	    return partida.getJugadores().size() > 1;
 	}
 
 	// metodo para repartir cartas

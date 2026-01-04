@@ -19,12 +19,13 @@ public class Juego {
 	private List<String> cartasMesa = new ArrayList<>(); //
 	private List<String> ultimasCartasTiradasFisicas = new ArrayList<>(); // necesario para hacer el endpoint levantar
 	private String ultimaDeclaracion = ""; // lo que diga el cliente si son ases, o corazones o trebloes...
+	private String jugadorUltimaJugada;
 
 	// CONSTRUCTOR ÚNICO: Se encarga de dejar el juego listo
 	public Juego() {
 		this.idJuego = UUID.randomUUID().toString();
-		this.jugadores = new ArrayList<>(); // ¡Crucial para evitar NullPointerException!
-		this.mazo = new ArrayList<>(); // ¡Crucial para evitar NullPointerException!
+		this.jugadores = new ArrayList<>(); // para evitar NullPointerException!
+		this.mazo = new ArrayList<>(); // para evitar NullPointerException!
 		this.cartasMesa = new ArrayList<>();
 		this.idJugadorActual = 0;
 		this.partidaTerminada = false;
@@ -53,25 +54,11 @@ public class Juego {
 	}
 
 	// metodo que registra la jugada real contra la que se ha declarado
-	public void registrarJugada(List<String> cartasFisicas, String declaracion) {
-		this.ultimasCartasTiradasFisicas = new ArrayList<>(cartasFisicas);
-		this.ultimaDeclaracion = declaracion;
-		this.cartasMesa.addAll(cartasFisicas);
+	public void registrarJugada(String nombreJugador, List<String> cartasFisicas, String declaracion) {
+	    this.jugadorUltimaJugada = nombreJugador;
+	    this.ultimasCartasTiradasFisicas = new ArrayList<>(cartasFisicas); // se quitan de su mano
+	    this.ultimaDeclaracion = declaracion; // lo que se anuncia
 	}
-
-	// metodo que hace que el perdedor se lleve las cartas de la mesa
-	public void chuparCartas(Jugador perdedor) {
-		if (perdedor != null) {
-			perdedor.getCartas().addAll(this.cartasMesa);
-			this.cartasMesa.clear();
-			this.ultimasCartasTiradasFisicas.clear();
-			this.ultimaDeclaracion = "";
-			this.ultimaJugada.clear();
-		}
-	}
-
-	
-	
 
 	// GETTERS Y SETTERS
 	public String getIdJuego() {
@@ -124,14 +111,20 @@ public class Juego {
 
 	// Devuelve el jugador al que le toca jugar
 	public Jugador getJugadorActual() {
-		if (jugadores.isEmpty())
-			return null;
-		return jugadores.get(idJugadorActual);
+	    if (jugadores.isEmpty() || idJugadorActual >= jugadores.size()) {
+	        return null; // No hay jugador
+	    }
+	    return jugadores.get(idJugadorActual);
 	}
+
 
 	// Pasa el turno al siguiente jugador
 	public void pasarTurno() {
-		idJugadorActual = (idJugadorActual + 1) % jugadores.size();
+	    if (jugadores.isEmpty()) {
+	        idJugadorActual = 0;
+	    } else {
+	        idJugadorActual = (idJugadorActual + 1) % jugadores.size();
+	    }
 	}
 
 	public List<String> getCartasEnMesa() {
@@ -148,6 +141,10 @@ public class Juego {
 
 	public List<String> getCartasMesa() {
 		return cartasMesa;
+	}
+	
+	public String getJugadorUltimaJugada() {
+	    return jugadorUltimaJugada;
 	}
 
 	public void setCartasMesa(List<String> cartasMesa) {
