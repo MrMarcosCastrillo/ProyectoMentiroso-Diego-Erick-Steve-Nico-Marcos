@@ -60,17 +60,6 @@ public class Juego {
 		this.cartasMesa.addAll(cartasFisicas);
 	}
 
-	// metodo que hace que el perdedor se lleve las cartas de la mesa
-	public void chuparCartas(Jugador perdedor) {
-		if (perdedor != null) {
-			perdedor.getCartas().addAll(this.cartasMesa);
-			this.cartasMesa.clear();
-			this.ultimasCartasTiradasFisicas.clear();
-			this.ultimaDeclaracion = "";
-			this.ultimaJugada.clear();
-		}
-	}
-
 	// GETTERS Y SETTERS
 	public String getIdJuego() {
 		return idJuego;
