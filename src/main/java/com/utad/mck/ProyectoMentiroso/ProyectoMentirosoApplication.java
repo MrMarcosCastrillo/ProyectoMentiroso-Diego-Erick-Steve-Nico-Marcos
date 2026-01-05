@@ -44,16 +44,11 @@ public class ProyectoMentirosoApplication {
 		respuesta.put("idJugador", jugadorNuevo.getIdJugador());
 		respuesta.put("idJuego", nuevaPartida.getIdJuego());
 		respuesta.put("cartas", jugadorNuevo.getCartas());
+		respuesta.put("misCartas", jugadorNuevo.getCartas());
 
 		return respuesta;
 
 	}
-
-//	@GetMapping("/juego/{idJuego}/jugar") // endpoint
-//	public String juegarJuego(@RequestParam(value = "nombre", defaultValue = "World") String name) {
-//
-//		return String.format("Hello %s!", name);
-//	}
 
 	@GetMapping("/juego/{idJuego}/levantar")
 	public Map<String, Object> levantar(@PathVariable String idJuego, @RequestParam String nombre) {
@@ -77,22 +72,23 @@ public class ProyectoMentirosoApplication {
 
 		for (String carta : partida.getUltimasCartasTiradasFisicas()) {
 			String valorReal = valorDeCarta(carta);
-			mintio = mintio || !valorReal.equals(declaracion);
+
+			if (!valorReal.equals(declaracion)) {
+				mintio = true;
+			}
 		}
 
 		// si miente se aplica el castigo
 		if (mintio) {
 			// si el sospechoso miente se lleva las cartas
 			Jugador sospechoso = buscarJugadorPorNombre(partida, nombreSospechoso);
-			partida.chuparCartas(sospechoso);
 			sospechoso.setEstaEliminado(true);
-			respuesta.put("resultado", "¡Cazado! " + nombreSospechoso + " mentía y se lleva la mesa. Es eliminado");
+			respuesta.put("resultado", "¡Cazado! " + nombreSospechoso + " mentía. Es eliminado");
 		} else {
 			// si no el acusador se las lleva
 			Jugador acusador = buscarJugadorPorNombre(partida, nombre);
-			partida.chuparCartas(acusador);
 			acusador.setEstaEliminado(true);
-			respuesta.put("resultado", "Era verdad... " + nombre + " se lleva toda la mesa. Es eliminado");
+			respuesta.put("resultado", "Era verdad... " + nombre + "Eres eliminado");
 		}
 
 		Jugador ganador = partida.getGanadorSiExiste();
@@ -115,8 +111,10 @@ public class ProyectoMentirosoApplication {
 	@GetMapping("/juego/{idJuego}/jugada")
 	public Map<String, Object> jugada(@PathVariable("idJuego") String idJuego, @RequestParam("nombre") String nombre,
 			@RequestParam("cartas") String cartasStr, @RequestParam("tipo") String tipo,
-			@RequestParam("valores") String valores) {
+			@RequestParam("cartasSupuestas") String cartasSupuestas) {
 		Map<String, Object> respuesta = new HashMap<>();
+
+		cartasSupuestas = valorDeCarta(cartasSupuestas);
 
 		Juego partida = partidas.get(idJuego);
 		if (partida == null) {
@@ -181,11 +179,11 @@ public class ProyectoMentirosoApplication {
 		// Si hay jugada anterior, comprobar que esta declaración la supera
 		if (partida.getUltimaJugada() != null && !partida.getUltimaJugada().isEmpty()) {
 			String tipoAnterior = (String) partida.getUltimaJugada().get("tipo");
-			String valoresAnterior = (String) partida.getUltimaJugada().get("valores");
+			String cartaSupAnterior = (String) partida.getUltimaJugada().get("cartasSupuestas");
 
-			if (!esSuperior(tipo, valores, tipoAnterior, valoresAnterior)) {
+			if (!esSuperior(tipo, cartasSupuestas, tipoAnterior, cartaSupAnterior)) {
 				respuesta.put("error",
-						"No se admite: no supera la jugada anterior (" + tipoAnterior + " " + valoresAnterior + ")");
+						"No se admite: no supera la jugada anterior (" + tipoAnterior + " " + cartaSupAnterior + ")");
 				respuesta.put("turnoActual", partida.getJugadorActual().getNombre());
 				return respuesta;
 			}
@@ -197,12 +195,13 @@ public class ProyectoMentirosoApplication {
 		}
 
 		// 4) Registrar en la partida (mesa + última jugada real + declaración)
-		partida.registrarJugada(cartasPedidas, valorPrincipalString(valores));
+		partida.registrarJugada(cartasPedidas, cartasSupuestas);
 
 		Map<String, Object> ultima = new HashMap<>();
 		ultima.put("jugador", nombre);
 		ultima.put("tipo", tipo);
-		ultima.put("valores", valores);
+		ultima.put("cartasSupuestas", cartasSupuestas);
+		ultima.put("cantidad", cartasPedidas.size());
 		partida.setUltimaJugada(ultima);
 
 		// Si juega el creador (primer jugador), contamos su turno
@@ -219,6 +218,7 @@ public class ProyectoMentirosoApplication {
 		respuesta.put("jugador", nombre);
 		respuesta.put("tiradas", cartasPedidas);
 		respuesta.put("manoRestante", jugador.getCartas());
+		respuesta.put("misCartas", jugador.getCartas());
 		respuesta.put("mesa", partida.getCartasMesa());
 		respuesta.put("turnoSiguiente", partida.getJugadorActual().getNombre());
 
@@ -296,6 +296,7 @@ public class ProyectoMentirosoApplication {
 				respuesta.put("mensajeJugadaAnterior", "Eres el primero en jugar, no hay jugada anterior.");
 			}
 		}
+		respuesta.put("misCartas", jugadorNuevo.getCartas());
 
 		return respuesta;
 	}
@@ -313,6 +314,75 @@ public class ProyectoMentirosoApplication {
 			listaParaCliente.add(info);
 		}
 		return listaParaCliente;
+	}
+
+	// Salirse de la partida y que se elimine si hay 0 personas
+	@GetMapping("/juego/{idJuego}/salir")
+	public Map<String, Object> salir(@PathVariable String idJuego, @RequestParam String nombre) {
+
+		Map<String, Object> resp = new HashMap<>();
+
+		Juego partida = partidas.get(idJuego);
+		if (partida == null) {
+			resp.put("error", "No existe la partida");
+			return resp;
+		}
+
+		Jugador jugador = buscarJugadorPorNombre(partida, nombre);
+		if (jugador == null) {
+			resp.put("error", "El jugador no está en la partida");
+			return resp;
+		}
+
+		// quitar jugador
+		partida.getJugadores().remove(jugador);
+
+		// si no queda nadie borrar partida
+		if (partida.getJugadores().isEmpty()) {
+			partidas.remove(idJuego);
+		}
+
+		resp.put("ok", true);
+		return resp;
+	}
+
+	@GetMapping("/juego/{idJuego}/estado")
+	public Map<String, Object> estado(@PathVariable String idJuego, @RequestParam String nombre) {
+
+		Map<String, Object> resp = new HashMap<>();
+
+		Juego partida = partidas.get(idJuego);
+		if (partida == null) {
+			resp.put("error", "No existe la partida");
+			return resp;
+		}
+
+		Jugador yo = buscarJugadorPorNombre(partida, nombre);
+		if (yo == null) {
+			resp.put("error", "No estás en la partida");
+			return resp;
+		}
+
+		Jugador turno = partida.getJugadorActual();
+
+		if (turno != null) {
+			resp.put("turnoDe", turno.getNombre());
+
+			if (turno.getNombre().equalsIgnoreCase(nombre)) {
+				resp.put("tuTurno", true);
+			} else {
+				resp.put("tuTurno", false);
+			}
+
+		} else {
+			resp.put("turnoDe", null);
+			resp.put("tuTurno", false);
+		}
+
+		resp.put("ultimaJugada", partida.getUltimaJugada());
+		resp.put("misCartas", yo.getCartas());
+
+		return resp;
 	}
 
 	// metodos auxuliares
