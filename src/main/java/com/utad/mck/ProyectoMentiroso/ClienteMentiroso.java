@@ -82,10 +82,13 @@ public class ClienteMentiroso {
 		String json = llamarEndpoint(url);
 
 		if (!json.isEmpty() && json.contains("\"idJuego\":\"")) {
-			// esto separa la respuesta y pilla exactamente el id de la partida
-			idJuegoActual = json.split("\"")[7];
+			int i = json.indexOf("\"idJuego\":\"");
+			int start = i + "\"idJuego\":\"".length();
+			int end = json.indexOf("\"", start);
+			idJuegoActual = json.substring(start, end);
 			System.out.println("ID guardado: " + idJuegoActual);
 		}
+
 	}
 
 	public static void lobby() {
@@ -111,7 +114,7 @@ public class ClienteMentiroso {
 		}
 		System.out.print("Cartas (ej: 2C,10D,4T): ");
 		String cartas = sc.nextLine();
-		System.out.print("Tipo (carta/pareja/trio): ");
+		System.out.print("Tipo (carta/pareja/dosparejas/trio/full/poker): ");
 		String tipo = sc.nextLine();
 		System.out.print("Que has tirado: ");
 		String cartasSupuestas = sc.nextLine();
