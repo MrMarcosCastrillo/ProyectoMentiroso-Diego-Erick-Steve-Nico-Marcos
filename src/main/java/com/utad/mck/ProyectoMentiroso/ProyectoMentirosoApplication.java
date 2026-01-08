@@ -353,6 +353,7 @@ public class ProyectoMentirosoApplication {
 			Jugador sospechoso = buscarJugadorPorNombre(partida, nombreSospechoso);
 			sospechoso.setEstaEliminado(true);
 			respuesta.put("resultado", "¡Cazado! " + nombreSospechoso + " mentía. Es eliminado");
+			partida.pasarTurno();
 		} else {
 			// si no el acusador se las lleva
 			Jugador acusador = buscarJugadorPorNombre(partida, nombre);
