@@ -12,7 +12,7 @@ public class ClienteMentiroso {
 	static String nombreJugador = null;
 	static String idJuegoActual = null;
 	static String cartasActuales = "-";
-	static String servidor = "http://localhost:8080";
+	static String servidor = "http://10.1.192.23:8080";
 
 	public static void main(String[] args) {
 		boolean seguir = true;
