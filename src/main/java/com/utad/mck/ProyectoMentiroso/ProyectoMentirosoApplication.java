@@ -358,6 +358,7 @@ public class ProyectoMentirosoApplication {
 			Jugador acusador = buscarJugadorPorNombre(partida, nombre);
 			acusador.setEstaEliminado(true);
 			respuesta.put("resultado", "Era verdad... " + nombre + "Eres eliminado");
+			partida.pasarTurno();
 		}
 
 		Jugador ganador = partida.getGanadorSiExiste();
@@ -371,6 +372,8 @@ public class ProyectoMentirosoApplication {
 			respuesta.put("misCartas", yo.getCartas());
 			respuesta.put("estoyEliminado", yo.isEstaEliminado());
 		} // para poder ver siempre mis cartas
+		
+		respuesta.put("turnoSiguiente: ", partida.getJugadorActual().getNombre());
 
 		return respuesta;
 
