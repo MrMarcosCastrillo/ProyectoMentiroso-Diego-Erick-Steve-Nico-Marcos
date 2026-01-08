@@ -254,7 +254,7 @@ public class ProyectoMentirosoApplication {
 			mano.remove(carta); // quita 1 ocurrencia
 		}
 
-		// 4) Registrar en la partida (mesa + última jugada real + declaración)
+		//registrar en la partida 
 		partida.registrarJugada(cartasPedidas, cartasSupuestas);
 
 		Map<String, Object> ultima = new HashMap<>();
@@ -264,7 +264,7 @@ public class ProyectoMentirosoApplication {
 		ultima.put("cantidad", cartasPedidas.size());
 		partida.setUltimaJugada(ultima);
 
-		// Si juega el creador (primer jugador), contamos su turno
+		// Si juega el creador se cjenta su turno
 		Jugador creador = partida.getJugadores().get(0);
 		if (jugador.getNombre().equalsIgnoreCase(creador.getNombre())) {
 			partida.sumarTurnosCreador();
@@ -499,7 +499,7 @@ public class ProyectoMentirosoApplication {
 		if (tipo.equals("full"))
 			return 5;
 		if (tipo.equals("poker"))
-			return 6;
+			return 6;	
 
 		return 0;
 	}
