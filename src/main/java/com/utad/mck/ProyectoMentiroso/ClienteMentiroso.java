@@ -11,20 +11,33 @@ public class ClienteMentiroso {
 	static Scanner sc = new Scanner(System.in);
 	static String nombreJugador = null;
 	static String idJuegoActual = null;
-
-	static String servidor = "http://localhost:8080";
+	static String cartasActuales = "-";
+	static String servidor = "http://10.1.192.23:8080";
 
 	public static void main(String[] args) {
 		boolean seguir = true;
 		System.out.println("-- CLIENTE JUEGO DEL MENTIROSO --");
 
 		while (seguir) {
-			System.out.println("----MENU----");
-			System.out.println("1. Crear partida");
-			System.out.println("2. Unirse a partida (Lobby)");
-			System.out.println("3. Jugar");
-			System.out.println("4. Levantar jugada");
-			System.out.println("5. Salir");
+			System.out.println();
+			System.out.println("====================================");
+			System.out.println("      CLIENTE JUEGO DEL MENTIROSO    ");
+			System.out.println("====================================");
+
+			System.out.println("Jugador : " + (nombreJugador == null ? "-" : nombreJugador));
+			System.out.println("Info jugador : " + cartasActuales);
+			System.out.println("Partida : " + (idJuegoActual == null ? "-" : idJuegoActual));
+			System.out.println("------------------------------------");
+
+			System.out.println(" 1) Crear partida");
+			System.out.println(" 2) Unirse a partida (Lobby)");
+			System.out.println(" 3) Jugar");
+			System.out.println(" 4) Levantar jugada");
+			System.out.println(" 5) Ver última jugada");
+			System.out.println(" 6) Salir");
+
+			System.out.println("------------------------------------");
+			System.out.print("Selecciona una opción: ");
 
 			int opcion = sc.nextInt();
 			sc.nextLine();
@@ -43,6 +56,16 @@ public class ClienteMentiroso {
 				levantar();
 				break;
 			case 5:
+				verUltimaJugada();
+				break;
+
+			case 6:
+				// Si estoy dentro de una partida, aviso al servidor antes de cerrar
+				if (idJuegoActual != null && nombreJugador != null) {
+					String url = servidor + "/juego/" + idJuegoActual + "/salir?nombre=" + nombreJugador;
+					llamarEndpoint(url);
+				}
+
 				seguir = false;
 				System.out.println("Saliendo...");
 				break;
@@ -59,10 +82,13 @@ public class ClienteMentiroso {
 		String json = llamarEndpoint(url);
 
 		if (!json.isEmpty() && json.contains("\"idJuego\":\"")) {
-			//esto separa la respuesta y pilla exactamente el id de la partida
-			idJuegoActual = json.split("\"")[7];
+			int i = json.indexOf("\"idJuego\":\"");
+			int start = i + "\"idJuego\":\"".length();
+			int end = json.indexOf("\"", start);
+			idJuegoActual = json.substring(start, end);
 			System.out.println("ID guardado: " + idJuegoActual);
 		}
+
 	}
 
 	public static void lobby() {
@@ -88,13 +114,13 @@ public class ClienteMentiroso {
 		}
 		System.out.print("Cartas (ej: 2C,10D,4T): ");
 		String cartas = sc.nextLine();
-		System.out.print("Tipo (carta/pareja/trio): ");
+		System.out.print("Tipo (carta/pareja/dosparejas/trio/full/poker): ");
 		String tipo = sc.nextLine();
-		System.out.print("Valores (ej: 10,2,4): ");
-		String valores = sc.nextLine();
+		System.out.print("Que has tirado: ");
+		String cartasSupuestas = sc.nextLine();
 
 		String url = servidor + "/juego/" + idJuegoActual + "/jugada?nombre=" + nombreJugador + "&cartas=" + cartas
-				+ "&tipo=" + tipo + "&valores=" + valores;
+				+ "&tipo=" + tipo + "&cartasSupuestas=" + cartasSupuestas;
 		llamarEndpoint(url);
 	}
 
@@ -123,6 +149,28 @@ public class ClienteMentiroso {
 		} catch (Exception e) {
 			System.out.println("Error al conectar con el servidor.");
 		}
+
+		String json = respuesta.toString();
+
+		if (json.contains("misCartas")) {
+			cartasActuales = json;
+		}
+
 		return respuesta.toString();
 	}
+
+	public static void verUltimaJugada() {
+		if (idJuegoActual == null) {
+			System.out.println("No estás en ninguna partida");
+			return;
+		}
+		if (nombreJugador == null) {
+			System.out.println("No tienes nombre de jugador");
+			return;
+		}
+
+		String url = servidor + "/juego/" + idJuegoActual + "/estado?nombre=" + nombreJugador;
+		llamarEndpoint(url);
+	}
+
 }

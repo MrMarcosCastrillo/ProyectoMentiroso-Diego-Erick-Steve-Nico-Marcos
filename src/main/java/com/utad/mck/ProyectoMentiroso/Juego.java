@@ -16,7 +16,7 @@ public class Juego {
 	private boolean partidaTerminada;
 	private List<String> mazo;
 	private Map<String, Object> ultimaJugada = new java.util.HashMap<>();
-	private List<String> cartasMesa = new ArrayList<>(); //
+	private List<String> cartasMesa = new ArrayList<>();
 	private List<String> ultimasCartasTiradasFisicas = new ArrayList<>(); // para hacer el endpoint levantar
 	private String ultimaDeclaracion = "";
 	private int turnosCreador = 0;
@@ -33,7 +33,7 @@ public class Juego {
 		inicializarMazo();
 	}
 
-	private void inicializarMazo() {
+	private void inicializarMazo() { // para crear las cmbinaciones del mazo
 		this.mazo.clear();
 		for (String simbolo : SIMBOLO) {
 			for (String numero : NUMERO) {
@@ -45,30 +45,20 @@ public class Juego {
 
 	public List<String> robarCartas(int cantidad) {
 		List<String> mano = new ArrayList<>();
-		for (int i = 0; i < cantidad; i++) {
+		for (int i = 0; i < cantidad; i++) { // reparte 5 al crear partida o unirse
 			if (this.mazo != null && !this.mazo.isEmpty()) {
-				mano.add(this.mazo.remove(0));
+				mano.add(this.mazo.remove(0)); // para que se quite la carta del mazo y no vuelva a salir
 			}
 		}
 		return mano;
 	}
 
 	// metodo que registra la jugada real contra la que se ha declarado
-	public void registrarJugada(List<String> cartasFisicas, String declaracion) {
+	public void registrarJugada(List<String> cartasFisicas, String declaracion) { // las cartas que ha tirado, y lo que
+																					// dice que ha tirado
 		this.ultimasCartasTiradasFisicas = new ArrayList<>(cartasFisicas);
 		this.ultimaDeclaracion = declaracion;
 		this.cartasMesa.addAll(cartasFisicas);
-	}
-
-	// metodo que hace que el perdedor se lleve las cartas de la mesa
-	public void chuparCartas(Jugador perdedor) {
-		if (perdedor != null) {
-			perdedor.getCartas().addAll(this.cartasMesa);
-			this.cartasMesa.clear();
-			this.ultimasCartasTiradasFisicas.clear();
-			this.ultimaDeclaracion = "";
-			this.ultimaJugada.clear();
-		}
 	}
 
 	// GETTERS Y SETTERS
@@ -127,7 +117,7 @@ public class Juego {
 		return jugadores.get(idJugadorActual);
 	}
 
-	// Pasa el turno al siguiente jugador
+	// Pasa el turno al siguiente jugador que no esté eliminado
 	public void pasarTurno() {
 		if (jugadores.isEmpty())
 			return; // por si al pasar de turno, pasamos a un jugador que esta eliminado
@@ -200,7 +190,7 @@ public class Juego {
 	}
 
 	public void sumarTurnosCreador() {
-		turnosCreador++;
+		turnosCreador++; // cuando el jugador tenga el id 0 se suma
 	}
 
 }
